@@ -1,0 +1,26 @@
+﻿/*********************************************************************************
+ *Copyright(C) 2015 by #AUTHOR#
+ *All rights reserved.
+ *FileName:     #SCRIPTFULLNAME#
+ *Author:       #AUTHOR#
+ *Version:      #VERSION#
+ *UnityVersion：#UNITYVERSION#
+ *Date:         #DATE#
+ *Description:   
+ *History:  
+**********************************************************************************/
+using UnityEngine;
+using System.Collections;
+
+public class #SCRIPTNAME# : MonoBehaviour {
+
+	// Use this for initialization
+	void Start () {
+	
+	}
+	
+	// Update is called once per frame
+	void Update () {
+	
+	}
+}
