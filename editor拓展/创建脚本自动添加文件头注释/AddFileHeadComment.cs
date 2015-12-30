@@ -8,6 +8,7 @@
  *Date:         12/25/2015 
  *Description:  在unity创建c#脚本时替换脚本中的属性值。
                 如有问题请在 https://git.coding.net/better-start-now/unityCodeBase.git 讨论区留言。
+				或 https://github.com/FengNongtheWindCoder/unityCodeBase
  *History:  
 **********************************************************************************/
 using UnityEditor;

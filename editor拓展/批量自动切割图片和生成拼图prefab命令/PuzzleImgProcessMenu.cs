@@ -10,6 +10,7 @@
                 提供将切分后的图片组合生成prefab的函数generateImgAllPiecesPrefab，生成的prefab记录碎片原来的位置。 
                 提供三个菜单项，可将图片切割为4*4等分，并生成prefab，或者单独进行这两步，菜单支持多选。
 				如有问题请在 https://git.coding.net/better-start-now/unityCodeBase.git 讨论区留言。
+				或 https://github.com/FengNongtheWindCoder/unityCodeBase
  *History:  
 **********************************************************************************/
 using UnityEngine;

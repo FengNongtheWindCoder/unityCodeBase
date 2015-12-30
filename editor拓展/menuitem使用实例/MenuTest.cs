@@ -8,6 +8,7 @@
  *Date:         12/25/2015 10:27:05 PM
  *Description:  对menuitem各种用法的展示
                 如有问题请在 https://git.coding.net/better-start-now/unityCodeBase.git 讨论区留言。
+				或 https://github.com/FengNongtheWindCoder/unityCodeBase
  *History:  
 **********************************************************************************/
 using UnityEditor;
