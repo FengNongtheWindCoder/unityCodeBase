@@ -1,0 +1,37 @@
+﻿/*********************************************************************************
+ *Copyright(C) 2016 by #AUTHOR#
+ *All rights reserved.
+ *FileName:     #SCRIPTFULLNAME#
+ *Author:       #AUTHOR#
+ *Version:      #VERSION#
+ *UnityVersion：#UNITYVERSION#
+ *Date:         #DATE#
+ *Description:   
+ *History:  
+**********************************************************************************/
+using UnityEngine;
+using HutongGames.PlayMaker;
+using TooltipAttribute = HutongGames.PlayMaker.TooltipAttribute;
+namespace FengnongGames.customPlaymakerActions
+{
+    [ActionCategory(ActionCategory.Input)]//change to proper category
+    [Tooltip("put description here")]
+    public class #SCRIPTNAME# : FsmStateAction
+    {
+		//reset or init variables
+		public override void Reset()
+		{
+			 
+		}
+        //enter action ,called once 
+		public override void OnEnter()
+		{
+			 
+		}
+        //called every frame
+		public override void OnUpdate()
+		{
+			 
+		}
+    }
+}
