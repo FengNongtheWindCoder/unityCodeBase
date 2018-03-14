@@ -34,7 +34,6 @@ public class PC2dController : MonoBehaviour {
         float xInput = Input.GetAxisRaw("Horizontal");
 
         //计算速度
-        
         float inputSign = Mathf.Sign(xInput);//0的sign是1
         float xVelocitySign = Mathf.Sign(_curVelocity.x);
         float xVelocity = _curVelocity.x;
@@ -53,6 +52,8 @@ public class PC2dController : MonoBehaviour {
             }
         }
         _curVelocity.x = Mathf.Clamp(xVelocity, -1 * groundSpeed, groundSpeed);
+        //计算重力影响。使用的Physics2D重力设置
+        _curVelocity += gravityModifier * Physics2D.gravity * Time.deltaTime;
     }
 
     void FixedUpdate() {
