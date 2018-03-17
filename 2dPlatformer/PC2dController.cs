@@ -17,6 +17,10 @@ public class PC2dController : MonoBehaviour {
     private float groundAcceleration;//加速 减速是计算出的
     private float groundDeceleration;//加速 减速是计算出的
 
+    
+    private ContactFilter2D contactFilter;
+    private RaycastHit2D[] hitBuffer = new RaycastHit2D[16];
+    private const float shellRadius = 0.01f;
     private PC2dStateManager stateManager;
     private Rigidbody2D rb2d;
     // Use this for initialization
@@ -26,6 +30,10 @@ public class PC2dController : MonoBehaviour {
         groundAcceleration = groundSpeed / timeToGroundSpeed;
         groundDeceleration = (groundSpeed * groundSpeed) / (2 * groundStopDistance);
         rb2d = GetComponent<Rigidbody2D>();
+
+        contactFilter.SetLayerMask(Physics2D.GetLayerCollisionMask(gameObject.layer));
+        contactFilter.useLayerMask = true;
+
     }
 
     // Update is called once per frame
@@ -57,11 +65,42 @@ public class PC2dController : MonoBehaviour {
     }
 
     void FixedUpdate() {
-        //测试碰撞
-        //rb2d.Cast();
         //计算运动
-        Vector2 targetPos = rb2d.position + _curVelocity * Time.deltaTime;
+        Vector2 deltaMovement = _curVelocity * Time.deltaTime;
+        
+        //测试碰撞
+        //水平方向
+        float trymove = deltaMovement.x;
+        CheckCollisions(ref trymove, true);
+        deltaMovement.x = trymove;
+        //垂直方向
+        trymove =  deltaMovement.y ;
+        CheckCollisions(ref trymove, false);
+        deltaMovement.y = trymove;
+
+        //移动位置
+        Vector2 targetPos = rb2d.position + deltaMovement;
         rb2d.MovePosition(targetPos);
+    }
+    /// <summary>
+    /// 在此方向和距离下检测是否有碰撞
+    /// </summary>
+    /// <param name="xOrYMove">移动的大小,有正负</param>
+    /// <param name="isXMovement">是否x方向</param>
+    void CheckCollisions(ref float xOrYMove, bool isXMovement) {
+        Vector2 movement = isXMovement ? new Vector2(xOrYMove, 0) : new Vector2(0, xOrYMove);
+        float distance = Mathf.Abs(xOrYMove);
+        //float distance = moveAmount.magnitude;
+        float sign = Mathf.Sign(xOrYMove);
+        int count = rb2d.Cast(movement, contactFilter, hitBuffer, distance + shellRadius);
+        for (int i = 0; i < count; i++) {
+            float modifiedDistance = hitBuffer[i].distance - shellRadius;
+            distance = modifiedDistance < distance ? modifiedDistance : distance;
+            if (!isXMovement) {
+                _curVelocity.y = 0;
+            }
+        }
+        xOrYMove = distance * sign;
     }
 
     //监听状态改变
