@@ -21,6 +21,9 @@ public class PC2dStateManager {
 
     // 修改当前状态
     public void ChangeStateTo(UserState nextState) {
+        if (nextState == currentState) {
+            return;
+        }
         lastState = currentState;
         currentState = nextState;
         lastStateDuration = Time.time - stateEnterTime;
