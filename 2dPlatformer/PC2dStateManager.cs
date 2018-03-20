@@ -31,4 +31,11 @@ public class PC2dStateManager {
         OnStateChange?.Invoke(lastState, currentState);
     }
 
+    //判断当前状态是否允许跳跃
+    public bool canJump() {
+        if(currentState == UserState.Grounded) {
+            return true;
+        }
+        return false;
+    }
 }

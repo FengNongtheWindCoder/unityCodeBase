@@ -8,7 +8,8 @@ public class PC2dController : MonoBehaviour {
     public Vector2 _curVelocity = Vector2.zero;//计算出的当前速度
 
     //重力系数
-    public float gravityModifier = 1;
+    public float gravityModifier = 3;
+    public float fallGravityModifier = 5;//下落时重力加大，下落变快
     //地面运动参数
     public float groundSpeed = 10f;//最大跑动速度
     public float timeToGroundSpeed = 0.5f;//达到最大速度时间
@@ -17,7 +18,21 @@ public class PC2dController : MonoBehaviour {
     private float groundAcceleration;//加速 减速是计算出的
     private float groundDeceleration;//加速 减速是计算出的
 
-    
+    //跳跃相关
+    public float jumpHeight = 5f;//跳跃高度
+    private float jumpSpeed;//起跳速度由重力和跳跃高度决定，
+
+    //用户输入存储
+    private struct stUserInput {
+        public float xInput;     //水平输入
+        public bool jumpPressed;    //跳跃按键
+        public void Reset() {
+            //重置所有输入
+            xInput = 0;   
+            jumpPressed = false;
+        }
+    }
+    private stUserInput userInput;
     private ContactFilter2D contactFilter;
     private RaycastHit2D[] hitBuffer = new RaycastHit2D[16];
     private const float shellRadius = 0.01f;
@@ -27,10 +42,14 @@ public class PC2dController : MonoBehaviour {
     void Start() {
         stateManager = new PC2dStateManager();
         stateManager.OnStateChange += Statechanged;
+        rb2d = GetComponent<Rigidbody2D>();
+        //地面加速减速计算
         groundAcceleration = groundSpeed / timeToGroundSpeed;
         groundDeceleration = (groundSpeed * groundSpeed) / (2 * groundStopDistance);
-        rb2d = GetComponent<Rigidbody2D>();
-
+        //起跳速度计算 v=sqrt(2gh)
+        jumpSpeed = Mathf.Sqrt(2 * -1 * gravityModifier * Physics2D.gravity.y * jumpHeight);
+        
+        userInput.Reset();
         contactFilter.SetLayerMask(Physics2D.GetLayerCollisionMask(gameObject.layer));
         contactFilter.useLayerMask = true;
 
@@ -39,10 +58,10 @@ public class PC2dController : MonoBehaviour {
     // Update is called once per frame
     void Update() {
         //检测输入
-        float xInput = Input.GetAxisRaw("Horizontal");
-        
+        userInput.xInput = Input.GetAxisRaw("Horizontal");
+        userInput.jumpPressed = Input.GetButtonDown("Jump");//ButtonDown只在下一帧重置
         //计算当前速度
-        ComputeVelocity(xInput);
+        ComputeVelocity();
     }
 
     void FixedUpdate() {
@@ -101,9 +120,8 @@ public class PC2dController : MonoBehaviour {
     /// <summary>
     /// 基于当前的输入和上一帧的速度计算当前的速度
     /// </summary>
-    /// <param name="xInput"></param>
-    void ComputeVelocity(float xInput) {
-        
+    void ComputeVelocity() {
+        float xInput = userInput.xInput;
         float inputSign = Mathf.Sign(xInput);//0的sign是1
         float xVelocitySign = Mathf.Sign(_curVelocity.x);
         float xVelocity = _curVelocity.x;
@@ -121,15 +139,23 @@ public class PC2dController : MonoBehaviour {
                 xVelocity = xVelocity < speedThreshold ? 0 : xVelocity;
             }
         }
+        //不能超出最大速度
         _curVelocity.x = Mathf.Clamp(xVelocity, -1 * groundSpeed, groundSpeed);
 
         //y方向
+        //跳跃
+        if (userInput.jumpPressed && stateManager.canJump()) {
+            _curVelocity.y = jumpSpeed;
+            stateManager.ChangeStateTo(UserState.Rising);
+        }
         //计算重力影响。使用的Physics2D重力设置
-        _curVelocity += gravityModifier * Physics2D.gravity * Time.deltaTime;
+        float modifier = _curVelocity.y > 0 ? gravityModifier : fallGravityModifier;
+        _curVelocity += modifier * Physics2D.gravity * Time.deltaTime;
     }
 
     //监听状态改变
     void Statechanged(UserState fromState, UserState toState) {
         Debug.Log(fromState.ToString() + " => " + toState.ToString());
     }
+
 }
