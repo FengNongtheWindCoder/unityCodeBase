@@ -17,7 +17,12 @@ public class PC2dController : MonoBehaviour {
     public float speedThreshold = 0.1f;//最小移动速度，小于此值速度归零
     private float groundAcceleration;//加速 减速是计算出的
     private float groundDeceleration;//加速 减速是计算出的
-
+    //空中运动参数
+    public float airSpeed = 10f;//空中水平最大速度
+    public float timeToAirSpeed = 0.5f;//达到最大空中速度时间，水平方向
+    public float airStopDistance = 0.5f;//空中停止移动需要的距离，水平方向
+    private float airAcceleration;//空中加速 减速是计算出的
+    private float airDeceleration;//空中加速 减速是计算出的
     //跳跃相关
     public float jumpHeight = 5f;//跳跃高度
     private float jumpSpeed;//起跳速度由重力和跳跃高度决定，
@@ -46,6 +51,9 @@ public class PC2dController : MonoBehaviour {
         //地面加速减速计算
         groundAcceleration = groundSpeed / timeToGroundSpeed;
         groundDeceleration = (groundSpeed * groundSpeed) / (2 * groundStopDistance);
+        //空中加速减速计算
+        airAcceleration = airSpeed / timeToAirSpeed;
+        airDeceleration = (airSpeed * airSpeed) / (2 * airStopDistance);
         //起跳速度计算 v=sqrt(2gh)
         jumpSpeed = Mathf.Sqrt(2 * -1 * gravityModifier * Physics2D.gravity.y * jumpHeight);
         

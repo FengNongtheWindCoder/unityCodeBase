@@ -12,6 +12,11 @@ public class PC2dStateManager {
     public UserState lastState, currentState;
     public float stateEnterTime, lastStateDuration = 0;
     public event Action<UserState, UserState> OnStateChange;
+    public bool isInAir {
+        get {
+            return currentState == UserState.Falling || currentState == UserState.Rising;
+        }
+    }
 
     public PC2dStateManager() {
         lastState = currentState = UserState.Start;
