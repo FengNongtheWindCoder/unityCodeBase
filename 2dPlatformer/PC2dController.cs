@@ -8,8 +8,8 @@ public class PC2dController : MonoBehaviour {
     public Vector2 _curVelocity = Vector2.zero;//计算出的当前速度
 
     //重力系数
-    public float gravityModifier = 3;
-    public float fallGravityModifier = 5;//下落时重力加大，下落变快
+    public float gravityModifier = 4;
+    public float fallGravityModifier = 8;//下落时重力加大，下落变快
     //地面运动参数
     public float groundSpeed = 10f;//最大跑动速度
     public float timeToGroundSpeed = 0.5f;//达到最大速度时间
@@ -20,12 +20,12 @@ public class PC2dController : MonoBehaviour {
     //空中运动参数
     public float airSpeed = 10f;//空中水平最大速度
     public float timeToAirSpeed = 0.5f;//达到最大空中速度时间，水平方向
-    public float airStopDistance = 0.5f;//空中停止移动需要的距离，水平方向
+    public float airStopDistance = 10f;//空中停止移动需要的距离，水平方向
     private float airAcceleration;//空中加速 减速是计算出的
     private float airDeceleration;//空中加速 减速是计算出的
     //跳跃相关
     public float jumpHeight = 5f;//跳跃高度
-    private float jumpSpeed;//起跳速度由重力和跳跃高度决定，
+    private float jumpStartSpeed;//起跳速度由重力和跳跃高度决定，
 
     //用户输入存储
     private struct stUserInput {
@@ -55,7 +55,7 @@ public class PC2dController : MonoBehaviour {
         airAcceleration = airSpeed / timeToAirSpeed;
         airDeceleration = (airSpeed * airSpeed) / (2 * airStopDistance);
         //起跳速度计算 v=sqrt(2gh)
-        jumpSpeed = Mathf.Sqrt(2 * -1 * gravityModifier * Physics2D.gravity.y * jumpHeight);
+        jumpStartSpeed = Mathf.Sqrt(2 * -1 * gravityModifier * Physics2D.gravity.y * jumpHeight);
         
         userInput.Reset();
         contactFilter.SetLayerMask(Physics2D.GetLayerCollisionMask(gameObject.layer));
@@ -68,11 +68,17 @@ public class PC2dController : MonoBehaviour {
         //检测输入
         userInput.xInput = Input.GetAxisRaw("Horizontal");
         userInput.jumpPressed = Input.GetButtonDown("Jump");//ButtonDown只在下一帧重置
-        //计算当前速度
-        ComputeVelocity();
+        //跳跃
+        if (userInput.jumpPressed && stateManager.canJump()) {
+            _curVelocity.y = jumpStartSpeed;
+            stateManager.ChangeStateTo(UserState.Rising);
+        }
     }
 
     void FixedUpdate() {
+        //计算当前速度
+        ComputeVelocity();
+
         //计算运动
         Vector2 deltaMovement = _curVelocity * Time.deltaTime;
         
@@ -133,32 +139,41 @@ public class PC2dController : MonoBehaviour {
         float inputSign = Mathf.Sign(xInput);//0的sign是1
         float xVelocitySign = Mathf.Sign(_curVelocity.x);
         float xVelocity = _curVelocity.x;
+
         //x方向
+        //区分是在地面还是在空中，x方向使用不同的加减速和最大速度
+        float acceleration = stateManager.isInAir ? airAcceleration : groundAcceleration ;
+        float deceleration = stateManager.isInAir ? airDeceleration : groundDeceleration;
+        float maxSpeed = stateManager.isInAir ? airSpeed : groundSpeed;
         //静止状态，按照输入方向加速
-        if (xVelocity == 0 && xInput != 0) {
-            xVelocity += xInput * groundAcceleration * Time.deltaTime;
-        } else if (xVelocity != 0) {
+        if (isStopped(xVelocity) && xInput != 0) {
+            xVelocity = xInput * acceleration * Time.deltaTime;
+        } else if (!isStopped(xVelocity)) {
             //非静止状态
-            //水平输入与速度同方向加速，反方向减速, 无输入减速
+            //水平输入与速度同方向加速，其他情况都是减速，包括反方向减速, 无输入减速
             if (xInput != 0 && inputSign == xVelocitySign) {
-                xVelocity += xVelocitySign * groundAcceleration * Time.deltaTime;
+                //加速
+                xVelocity += xVelocitySign * acceleration * Time.deltaTime;
             } else {
-                xVelocity += -1 * xVelocitySign * groundDeceleration * Time.deltaTime;
-                xVelocity = xVelocity < speedThreshold ? 0 : xVelocity;
+                //减速，但是不能把速度方向翻转了，减速的加速度太大
+                xVelocity += -1 * xVelocitySign * deceleration * Time.deltaTime;
+                xVelocity = (xVelocity * xVelocitySign < 0) ? 0 : xVelocity;
             }
         }
+        //小于阈值直接停下
+        xVelocity = isStopped(xVelocity) ? 0 : xVelocity;
         //不能超出最大速度
-        _curVelocity.x = Mathf.Clamp(xVelocity, -1 * groundSpeed, groundSpeed);
+        _curVelocity.x = Mathf.Clamp(xVelocity, -1 * maxSpeed, maxSpeed);
 
         //y方向
-        //跳跃
-        if (userInput.jumpPressed && stateManager.canJump()) {
-            _curVelocity.y = jumpSpeed;
-            stateManager.ChangeStateTo(UserState.Rising);
-        }
+        //跳跃在update中计算，因为buttondown检测是帧率相关
         //计算重力影响。使用的Physics2D重力设置
         float modifier = _curVelocity.y > 0 ? gravityModifier : fallGravityModifier;
         _curVelocity += modifier * Physics2D.gravity * Time.deltaTime;
+    }
+
+    bool isStopped(float speed) {
+        return Mathf.Abs(speed) <= speedThreshold;
     }
 
     //监听状态改变
