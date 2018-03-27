@@ -25,7 +25,10 @@ public class PC2dController : MonoBehaviour {
     private float airDeceleration;//空中加速 减速是计算出的
     //跳跃相关
     public float jumpHeight = 5f;//跳跃高度
+    public float extraJumpHeight = 5f;//按住可以增加的最大跳跃高度
     private float jumpStartSpeed;//起跳速度由重力和跳跃高度决定，
+    private float extraJumpTime;//计算得出额外跳跃高度所需要的时间，
+    
 
     //用户输入存储
     private struct stUserInput {
@@ -56,26 +59,29 @@ public class PC2dController : MonoBehaviour {
         airDeceleration = (airSpeed * airSpeed) / (2 * airStopDistance);
         //起跳速度计算 v=sqrt(2gh)
         jumpStartSpeed = Mathf.Sqrt(2 * -1 * gravityModifier * Physics2D.gravity.y * jumpHeight);
-        
+        //按住跳跃键获得额外高度的时长，忽略重力
+        extraJumpTime = extraJumpHeight / jumpStartSpeed;
+
         userInput.Reset();
         contactFilter.SetLayerMask(Physics2D.GetLayerCollisionMask(gameObject.layer));
         contactFilter.useLayerMask = true;
-
     }
 
     // Update is called once per frame
     void Update() {
-        //检测输入
-        userInput.xInput = Input.GetAxisRaw("Horizontal");
+        //检测输入，event类输入按帧重置，只能在update里处理
         userInput.jumpPressed = Input.GetButtonDown("Jump");//ButtonDown只在下一帧重置
+        
         //跳跃
         if (userInput.jumpPressed && stateManager.canJump()) {
-            _curVelocity.y = jumpStartSpeed;
-            stateManager.ChangeStateTo(UserState.Rising);
+            stateManager.recordJumpStart(Time.time + extraJumpTime);
         }
     }
 
     void FixedUpdate() {
+        //检测输入，帧率无关的输入检测
+        userInput.xInput = Input.GetAxisRaw("Horizontal");
+        
         //计算当前速度
         ComputeVelocity();
 
@@ -120,6 +126,7 @@ public class PC2dController : MonoBehaviour {
                 if (_curVelocity.y <= 0) {
                     //下落过程中，碰到地面
                     stateManager.ChangeStateTo(UserState.Grounded);
+                    stateManager.resetJump();
                 }
                 //y方向的速度碰到东西后清零
                 _curVelocity.y = 0;
@@ -166,9 +173,19 @@ public class PC2dController : MonoBehaviour {
         _curVelocity.x = Mathf.Clamp(xVelocity, -1 * maxSpeed, maxSpeed);
 
         //y方向
-        //跳跃在update中计算，因为buttondown检测是帧率相关
+        //跳跃检测在update中，因为buttondown检测是帧率相关
+        //IsJumpStart为true时，读取一次后会重置
+        if (stateManager.IsJumpStart) {
+            _curVelocity.y = jumpStartSpeed;
+        }
+        bool jumpHold = Input.GetButton("Jump");
+        float modifier;
+        if (jumpHold && stateManager.canExtraJump()) {
+            modifier = 0;
+        } else {
+            modifier = _curVelocity.y > 0 ? gravityModifier : fallGravityModifier;
+        }
         //计算重力影响。使用的Physics2D重力设置
-        float modifier = _curVelocity.y > 0 ? gravityModifier : fallGravityModifier;
         _curVelocity += modifier * Physics2D.gravity * Time.deltaTime;
     }
 

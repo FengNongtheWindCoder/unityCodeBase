@@ -17,6 +17,18 @@ public class PC2dStateManager {
             return currentState == UserState.Falling || currentState == UserState.Rising;
         }
     }
+    private bool isJumpStart = false;
+    public bool IsJumpStart {
+        get {
+            //设置为true后，被访问一次重置
+            if (isJumpStart) {
+                isJumpStart = false;
+                return true;
+            }
+            return false;
+        }
+    }
+    public float extraJumpAllowTime = 0;
 
     public PC2dStateManager() {
         lastState = currentState = UserState.Start;
@@ -43,4 +55,19 @@ public class PC2dStateManager {
         }
         return false;
     }
+    //根据当前时间判断是否允许继续额外跳跃
+    public bool canExtraJump() {
+        return (extraJumpAllowTime != 0) && (Time.time <= extraJumpAllowTime);
+    }
+    //记录起跳，记录允许额外跳跃的截止时间
+    public void recordJumpStart(float extraJumpTime) {
+        isJumpStart = true;
+        extraJumpAllowTime = extraJumpTime;
+        ChangeStateTo(UserState.Rising);
+    }
+    public void resetJump() {
+        isJumpStart = false;
+        extraJumpAllowTime = 0;
+    }
+
 }
