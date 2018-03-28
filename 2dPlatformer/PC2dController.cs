@@ -26,6 +26,7 @@ public class PC2dController : MonoBehaviour {
     //跳跃相关
     public float jumpHeight = 5f;//跳跃高度
     public float extraJumpHeight = 5f;//按住可以增加的最大跳跃高度
+    public int airJumpMax = 1; //空中跳跃最大次数
     private float jumpStartSpeed;//起跳速度由重力和跳跃高度决定，
     private float extraJumpTime;//计算得出额外跳跃高度所需要的时间，
     
@@ -51,6 +52,7 @@ public class PC2dController : MonoBehaviour {
         stateManager = new PC2dStateManager();
         stateManager.OnStateChange += Statechanged;
         rb2d = GetComponent<Rigidbody2D>();
+
         //地面加速减速计算
         groundAcceleration = groundSpeed / timeToGroundSpeed;
         groundDeceleration = (groundSpeed * groundSpeed) / (2 * groundStopDistance);
@@ -61,6 +63,8 @@ public class PC2dController : MonoBehaviour {
         jumpStartSpeed = Mathf.Sqrt(2 * -1 * gravityModifier * Physics2D.gravity.y * jumpHeight);
         //按住跳跃键获得额外高度的时长，忽略重力
         extraJumpTime = extraJumpHeight / jumpStartSpeed;
+        //设置空中可跳跃次数
+        stateManager.airJumpMax = airJumpMax;
 
         userInput.Reset();
         contactFilter.SetLayerMask(Physics2D.GetLayerCollisionMask(gameObject.layer));
