@@ -29,7 +29,11 @@ public class PC2dController : MonoBehaviour {
     public int airJumpMax = 1; //空中跳跃最大次数
     private float jumpStartSpeed;//起跳速度由重力和跳跃高度决定，
     private float extraJumpTime;//计算得出额外跳跃高度所需要的时间，
-    
+    //dash
+    public float dashSpeed = 10f;//dash速度
+    public float dashDistance = 3f;//dash距离
+    public float dashCooldown = 3f;//dash冷却时间
+    private float dashDuration = 0;//dash持续时间
 
     //用户输入存储
     private struct stUserInput {
@@ -41,6 +45,7 @@ public class PC2dController : MonoBehaviour {
             jumpPressed = false;
         }
     }
+    private bool facingRight = true;//当前面朝方向右为true
     private stUserInput userInput;
     private ContactFilter2D contactFilter;
     private RaycastHit2D[] hitBuffer = new RaycastHit2D[16];
@@ -65,6 +70,8 @@ public class PC2dController : MonoBehaviour {
         extraJumpTime = extraJumpHeight / jumpStartSpeed;
         //设置空中可跳跃次数
         stateManager.airJumpMax = airJumpMax;
+        //dash持续时间计算
+        dashDuration = dashDistance / dashSpeed;
 
         userInput.Reset();
         contactFilter.SetLayerMask(Physics2D.GetLayerCollisionMask(gameObject.layer));
@@ -75,6 +82,11 @@ public class PC2dController : MonoBehaviour {
     void Update() {
         //检测输入，event类输入按帧重置，只能在update里处理
         userInput.jumpPressed = Input.GetButtonDown("Jump");//ButtonDown只在下一帧重置
+        //dash
+        //if(Input.GetButtonDown("Dash") &&　stateManager.canDash()){
+        if(Input.GetKeyDown(KeyCode.LeftShift) &&　stateManager.canDash()){
+            stateManager.DashStart(Time.time + dashCooldown, Time.time + dashDuration);
+        }
         
         //跳跃
         if (userInput.jumpPressed && stateManager.canJump()) {
@@ -85,7 +97,12 @@ public class PC2dController : MonoBehaviour {
     void FixedUpdate() {
         //检测输入，帧率无关的输入检测
         userInput.xInput = Input.GetAxisRaw("Horizontal");
-        
+        //用户有输入时改变面朝方向
+        if(userInput.xInput == -1 ){
+            facingRight = false;
+        }else if(userInput.xInput == 1){
+            facingRight = true;
+        }
         //计算当前速度
         ComputeVelocity();
 
@@ -107,9 +124,10 @@ public class PC2dController : MonoBehaviour {
         rb2d.MovePosition(targetPos);
 
         //检查当前状态
-        if (stateManager.currentState != UserState.Grounded) {
-            UserState nextstate = _curVelocity.y > 0 ? UserState.Rising : UserState.Falling;
-            stateManager.ChangeStateTo(nextstate);
+        if (stateManager.currentState == UserState.Rising && _curVelocity.y <= 0) {
+            stateManager.ChangeStateTo(UserState.Falling);
+        } else if (stateManager.currentState == UserState.Falling && _curVelocity.y > 0) {
+            stateManager.ChangeStateTo(UserState.Rising);
         }
     }
 
@@ -119,6 +137,7 @@ public class PC2dController : MonoBehaviour {
     /// <param name="xOrYMove">移动的大小,有正负</param>
     /// <param name="isXMovement">是否x方向</param>
     void CheckCollisions(ref float xOrYMove, bool isXMovement) {
+        if(xOrYMove == 0){ return; }
         Vector2 movement = isXMovement ? new Vector2(xOrYMove, 0) : new Vector2(0, xOrYMove);
         float distance = Mathf.Abs(xOrYMove);
         float sign = Mathf.Sign(xOrYMove);
@@ -137,6 +156,10 @@ public class PC2dController : MonoBehaviour {
             } else {
                 //x方向的速度碰到东西后清零
                 _curVelocity.x = 0;
+                if(stateManager.isDashing){
+                    stateManager.DashStop();
+                }
+                
             }
         }
         xOrYMove = distance * sign;
@@ -146,6 +169,19 @@ public class PC2dController : MonoBehaviour {
     /// 基于当前的输入和上一帧的速度计算当前的速度
     /// </summary>
     void ComputeVelocity() {
+        //dash处理
+        if(stateManager.IsDashStart){
+            float dashspeed = facingRight ? dashSpeed : -1* dashSpeed;
+            _curVelocity = new Vector2(dashspeed, 0);
+            return;
+        }
+        else if(stateManager.isDashing && stateManager.shouldDashStop){
+            stateManager.DashStop();
+            _curVelocity = Vector2.zero;
+        } else if(stateManager.isDashing){
+            return;
+        }
+
         float xInput = userInput.xInput;
         float inputSign = Mathf.Sign(xInput);//0的sign是1
         float xVelocitySign = Mathf.Sign(_curVelocity.x);

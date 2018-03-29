@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 
 public enum UserState {
-    Start, Grounded, Rising, Falling
+    Start, Grounded, Rising, Falling, Dashing
 };
 
 public class PC2dStateManager {
@@ -32,13 +32,27 @@ public class PC2dStateManager {
             return false;
         }
     }
-    public float extraJumpAllowTime = 0;//本次跳跃的额外跳跃截止时间
+    public float extraJumpAllowTime = 0;//本次跳跃的额外跳跃截止时间 
+  
+
+    private bool isDashStart = false;//是否开始dash
+    public bool IsDashStart {
+        get {
+            //设置为true后，被访问一次重置
+            if (isDashStart) {
+                isDashStart = false;
+                return true;
+            }
+            return false;
+        }
+    }
+    public float dashNextAvailiableTime = 0;//下次dash可以使用的时间
+    public float dashStopTime = 0;//本次dash 停止时间
 
     public PC2dStateManager() {
         lastState = currentState = UserState.Start;
         stateEnterTime = Time.time;
     }
-
 
     // 修改当前状态
     public void ChangeStateTo(UserState nextState) {
@@ -79,11 +93,38 @@ public class PC2dStateManager {
         }
         ChangeStateTo(UserState.Rising);
     }
-
+    //重置跳跃次数等信息
     public void resetJump() {
         isJumpStart = false;
         airJumpCnt = 0; 
         extraJumpAllowTime = 0;
     }
 
+    public bool isDashing {
+        get {
+            return currentState == UserState.Dashing;
+        }
+    }
+    //从时间上判断dash是否该停止
+    public bool shouldDashStop {
+        get {
+            return Time.time >= dashStopTime;
+        }
+    }
+    //dash已经冷却，且当前不处于dash状态时，返回true
+    public bool canDash(){
+        return (!isDashing) &&　 (Time.time >= dashNextAvailiableTime);
+    }
+    //记录这次dash的结束时间，以及下次可用时间
+    public void DashStart(float nextAvailiableTime, float stopTIme){
+        isDashStart = true;
+        dashNextAvailiableTime = nextAvailiableTime;
+        dashStopTime = stopTIme;
+        ChangeStateTo(UserState.Dashing);
+    }
+    
+    public void DashStop(){
+        ChangeStateTo(UserState.Falling);
+        //changeState
+    }
 }
